@@ -1,5 +1,7 @@
 INCLUDE(CheckCXXSourceCompiles)
-set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
+
+set(CMAKE_REQUIRED_FLAGS "-std=c++11")
+
 CHECK_CXX_SOURCE_COMPILES("
 #include <thread>
 #include <mutex>
@@ -13,7 +15,7 @@ int main(int argc, char** argv) {
   std::unique_lock<std::mutex> unique_lock(mutex);
   std::condition_variable condition_variable;
   thread_local int i;
-  
+
   return 0;
 }
 

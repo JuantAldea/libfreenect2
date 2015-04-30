@@ -5,7 +5,7 @@ SET(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 SET(MY_DIR ${libfreenect2_SOURCE_DIR})
 
-OPTION(ENABLE_CXX11 "Enable C++11 support" OFF)
+OPTION(ENABLE_CXX11 "Enable C++11 support" ON)
 OPTION(ENABLE_OPENCL "Enable OpenCL support" ON)
 OPTION(ENABLE_OPENGL "Enable OpenGL support" ON)
 
@@ -71,20 +71,20 @@ SET(RESOURCES_INC_FILE "${MY_DIR}/src/resources.inc")
 SET(SOURCES
   src/transfer_pool.cpp
   src/event_loop.cpp
-  
+
   src/double_buffer.cpp
   src/frame_listener_impl.cpp
   src/packet_pipeline.cpp
-  
+
   src/rgb_packet_stream_parser.cpp
   src/rgb_packet_processor.cpp
   src/turbo_jpeg_rgb_packet_processor.cpp
-  
+
   src/depth_packet_stream_parser.cpp
   src/depth_packet_processor.cpp
   src/cpu_depth_packet_processor.cpp
   src/resource.cpp
-  
+
   src/usb_control.cpp
   src/command_transaction.cpp
   src/registration.cpp
@@ -101,8 +101,8 @@ SET(LIBRARIES
 )
 
 SET(RESOURCES
-  11to16.bin 
-  xTable.bin 
+  11to16.bin
+  xTable.bin
   zTable.bin
 )
 
@@ -132,7 +132,7 @@ ENDIF(ENABLE_OPENGL)
 IF(ENABLE_OPENCL AND OPENCL_FOUND)
   SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
   INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
-  
+
   LIST(APPEND SOURCES
     src/opencl_depth_packet_processor.cpp
   )
@@ -140,7 +140,7 @@ IF(ENABLE_OPENCL AND OPENCL_FOUND)
   LIST(APPEND LIBRARIES
     ${OPENCL_LIBRARIES}
   )
-  
+
   LIST(APPEND RESOURCES
     src/opencl_depth_packet_processor.cl
   )
@@ -155,11 +155,11 @@ INCLUDE_DIRECTORIES("${MY_DIR}/include")
 ADD_DEFINITIONS(-DRESOURCES_INC)
 ADD_LIBRARY(freenect2 SHARED ${SOURCES})
 TARGET_LINK_LIBRARIES(freenect2 ${LIBRARIES})
-  
+
 ADD_EXECUTABLE(Protonect
   Protonect.cpp
 )
-  
+
 TARGET_LINK_LIBRARIES(Protonect
   freenect2
 )
@@ -172,4 +172,4 @@ IF(LIBFREENECT2_THREADING_TINYTHREAD)
   INSTALL(FILES  "${MY_DIR}/src/tinythread/tinythread.h" DESTINATION include/${PROJECT_NAME}/tinythread/)
 ENDIF(LIBFREENECT2_THREADING_TINYTHREAD)
 INSTALL(FILES "${PROJECT_BINARY_DIR}/freenect2Config.cmake" DESTINATION lib/cmake/freenect2/)
-  
+

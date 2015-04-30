@@ -1,7 +1,7 @@
 INCLUDE(CheckCXXSourceCompiles)
 
 set(CMAKE_REQUIRED_FLAGS "-std=c++11")
-set(CMAKE_REQUIRED_FLAGS ${CMAKE_CXX_FLAGS})
+
 CHECK_CXX_SOURCE_COMPILES("
 #include <thread>
 #include <mutex>

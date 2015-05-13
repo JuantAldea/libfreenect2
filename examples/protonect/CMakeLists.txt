@@ -27,11 +27,9 @@ ENDIF(ENABLE_CXX11)
 # additional cmake modules
 LIST(APPEND CMAKE_MODULE_PATH ${MY_DIR}/cmake_modules)
 
-# setup threading, no need to setup it if a compiler with C++11 or C++0X was found
-IF (NOT (COMPILER_SUPPORTS_CXX11 OR COMPILER_SUPPORTS_CXX0X))
-  INCLUDE(SetupLibfreenect2Threading)
-  INCLUDE_DIRECTORIES(${LIBFREENECT2_THREADING_INCLUDE_DIR})
-ENDIF()
+# setup threading
+INCLUDE(SetupLibfreenect2Threading)
+INCLUDE_DIRECTORIES(${LIBFREENECT2_THREADING_INCLUDE_DIR})
 
 INCLUDE(GenerateResources)
 

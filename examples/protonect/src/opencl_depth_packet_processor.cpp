@@ -321,7 +321,7 @@ public:
       case CL_DEVICE_TYPE_ACCELERATOR:
         devType = "ACCELERATOR";
         break;
-#ifdef CL_VERSION_1_2
+#ifndef CL_USE_DEPRECATED_OPENCL_1_1_APIS
       case CL_DEVICE_TYPE_CUSTOM:
         devType = "CUSTOM";
         break;

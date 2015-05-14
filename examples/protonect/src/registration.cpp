@@ -26,7 +26,8 @@
 
 #include <math.h>
 #include <libfreenect2/registration.h>
-
+#include <iostream>
+#include <opencv2/opencv.hpp>
 namespace libfreenect2
 {
 
@@ -55,22 +56,66 @@ void Registration::undistort_depth(int x, int y, float& mx, float& my)
   my = dy / qs;
 }
 
+
+
+void Registration::undistort_depth(const Frame * const depth_in, Frame * const depth_out)
+{
+  const float * const depth_raw_in = (float*)depth_in->data;
+  float * const depth_raw_out = (float*)depth_out->data;
+  
+  cv::Mat k = cv::Mat::eye(3, 3, CV_32FC1);
+  k.at<float>(0, 0) = depth.fx;
+  k.at<float>(1, 1) = depth.fy;
+  k.at<float>(2, 2) = 1.0;
+  k.at<float>(0, 2) = depth.cx;
+  k.at<float>(1, 2) = depth.cy;
+  
+  cv::Mat dist_coeffs = cv::Mat::zeros(1, 8, CV_32F);
+  dist_coeffs.at<float>(0,0) = depth.k1;
+  dist_coeffs.at<float>(0,1) = depth.k2;
+  dist_coeffs.at<float>(0,2) = depth.p1;
+  dist_coeffs.at<float>(0,3) = depth.p2;
+  dist_coeffs.at<float>(0,4) = depth.k3;
+
+  cv::Mat image = cv::Mat(depth_in->height, depth_in->width, CV_32FC1, depth_in->data);
+  cv::imshow("COSAS1", image / 4500.0);
+  cv::Mat new_camera_matrix = cv::getOptimalNewCameraMatrix(k, dist_coeffs, cv::Size(depth_in->height, depth_in->width), 0.0);
+  cv::Mat map1, map2;
+  cv::initUndistortRectifyMap(new_camera_matrix, dist_coeffs, cv::noArray(), new_camera_matrix, image.size(), CV_32FC1, map1, map2);
+  
+  cv::Mat rectified;
+  cv::remap(image, rectified, map1, map2, cv::INTER_LINEAR);
+  cv::imshow("COSAS2", rectified / 4500.0);
+}
+
 void Registration::depth_to_color(float mx, float my, float& rx, float& ry)
 {
   mx *= depth.fx * depth_q;
   my *= depth.fy * depth_q;
 
   float wx =
-    (mx * mx * mx * color.mx_x3y0) + (my * my * my * color.mx_x0y3) +
-    (mx * mx * my * color.mx_x2y1) + (my * my * mx * color.mx_x1y2) +
-    (mx * mx * color.mx_x2y0) + (my * my * color.mx_x0y2) + (mx * my * color.mx_x1y1) +
-    (mx * color.mx_x1y0) + (my * color.mx_x0y1) + (color.mx_x0y0);
+    (mx * mx * mx * color.mx_x3y0) + 
+    (my * my * my * color.mx_x0y3) +
+    (mx * mx * my * color.mx_x2y1) + 
+    (my * my * mx * color.mx_x1y2) +
+    (mx * mx * color.mx_x2y0) + 
+    (my * my * color.mx_x0y2) + 
+    (mx * my * color.mx_x1y1) +
+    (mx * color.mx_x1y0) + 
+    (my * color.mx_x0y1) +
+    (color.mx_x0y0);
 
   float wy =
-    (mx * mx * mx * color.my_x3y0) + (my * my * my * color.my_x0y3) +
-    (mx * mx * my * color.my_x2y1) + (my * my * mx * color.my_x1y2) +
-    (mx * mx * color.my_x2y0) + (my * my * color.my_x0y2) + (mx * my * color.my_x1y1) +
-    (mx * color.my_x1y0) + (my * color.my_x0y1) + (color.my_x0y0);
+    (mx * mx * mx * color.my_x3y0) +
+    (my * my * my * color.my_x0y3) +
+    (mx * mx * my * color.my_x2y1) +
+    (my * my * mx * color.my_x1y2) +
+    (mx * mx * color.my_x2y0) +
+    (my * my * color.my_x0y2) +
+    (mx * my * color.my_x1y1) +
+    (mx * color.my_x1y0) + 
+    (my * color.my_x0y1) +
+    (color.my_x0y0);
 
   rx = wx / (color.fx * color_q);
   ry = wy / (color.fx * color_q);
@@ -127,6 +172,40 @@ void Registration::apply(Frame* rgb, Frame* depth, unsigned char* registered)
   }
 
 }
+
+void Registration::apply(const std::vector<std::tuple<float, float>> &vectors, const Frame * const depth, std::vector<std::tuple<float, float, float>> &reprojected_vectors)
+{
+  if (!depth){
+    return;
+  }
+
+  const float* depth_raw = (float*)depth->data;
+  float cx, cy;
+  
+  reprojected_vectors.resize(vectors.size());
+  
+  for (size_t i = 0; i < vectors.size(); i++) {
+    float float_x, float_y;
+    std::tie(float_x, float_y) = vectors[i];
+    const int x = round(float_x);
+    const int y = round(float_y);
+    
+    //valid points cannot be in the back of the camera
+
+    const int d_off = y * depth->width + x;
+
+    const float z_raw = depth_raw[d_off];
+    if (z_raw == 0.0) {
+      reprojected_vectors[i] = std::make_tuple(-1, -1, -1);
+      continue;
+    }
+
+    apply(x, y, z_raw, cx, cy);
+    
+    reprojected_vectors[i] = std::make_tuple(cx, cy, z_raw);
+  }
+}
+
 
 Registration::Registration(Freenect2Device::IrCameraParams depth_p, Freenect2Device::ColorCameraParams rgb_p):
   depth(depth_p), color(rgb_p)

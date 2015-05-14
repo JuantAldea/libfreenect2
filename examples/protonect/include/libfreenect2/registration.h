@@ -31,7 +31,8 @@
 #include <libfreenect2/config.h>
 #include <libfreenect2/libfreenect2.hpp>
 #include <libfreenect2/frame_listener.hpp>
-
+#include <vector>
+#include <tuple>
 namespace libfreenect2
 {
 
@@ -45,11 +46,14 @@ public:
 
   // undistort/register a whole image
   void apply(Frame* rgb, Frame* depth, unsigned char* registered);
+  void apply(const std::vector<std::tuple<float, float>> &vectors, const Frame * const depth, std::vector<std::tuple<float, float, float>> &reprojected_vectors);
 
-private:
+  void undistort_depth(const Frame * const depth_in, Frame * const depth_out);
   void undistort_depth(int dx, int dy, float& mx, float& my);
+
   void depth_to_color(float mx, float my, float& rx, float& ry);
 
+private:
   Freenect2Device::IrCameraParams depth;
   Freenect2Device::ColorCameraParams color;
 

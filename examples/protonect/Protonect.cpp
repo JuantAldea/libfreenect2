@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
 
   libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
   unsigned char* registered = NULL;
-
+  libfreenect2::Frame *undistorted_depth = NULL;
   while(!protonect_shutdown)
   {
     listener.waitForNewFrame(frames);
@@ -92,8 +92,13 @@ int main(int argc, char *argv[])
     cv::imshow("depth", cv::Mat(depth->height, depth->width, CV_32FC1, depth->data) / 4500.0f);
 
     if (!registered) registered = new unsigned char[depth->height*depth->width*rgb->bytes_per_pixel];
+    if (!undistorted_depth) undistorted_depth = new libfreenect2::Frame(depth->width, depth->height, depth->bytes_per_pixel);
+    
     registration->apply(rgb,depth,registered);
+    registration->undistort_depth(depth, undistorted_depth);
+    
     cv::imshow("registered", cv::Mat(depth->height, depth->width, CV_8UC3, registered));
+    cv::imshow("undistorted_depth_data", cv::Mat(undistorted_depth->height, undistorted_depth->width, CV_32FC1, undistorted_depth->data) / 4500.0f);
 
     int key = cv::waitKey(1);
     protonect_shutdown = protonect_shutdown || (key > 0 && ((key & 0xFF) == 27)); // shutdown on escape

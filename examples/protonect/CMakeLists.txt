@@ -37,8 +37,11 @@ SET(EXECUTABLE_OUTPUT_PATH ${MY_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 
-INCLUDE(FindPkgConfig)
-PKG_CHECK_MODULES(OPENCL OpenCL)
+#INCLUDE(FindPkgConfig)
+#PKG_CHECK_MODULES(OPENCL OpenCL)
+
+FIND_PACKAGE(OpenCL)
+message("OPENCL ${OpenCL_FIND_VERSION_MAJOR}")
 
 # dependencies
 FIND_PACKAGE(OpenCV REQUIRED)

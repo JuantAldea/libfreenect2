@@ -78,14 +78,15 @@ void Registration::undistort_depth(const Frame * const depth_in, Frame * const d
   dist_coeffs.at<float>(0,4) = depth.k3;
 
   cv::Mat image = cv::Mat(depth_in->height, depth_in->width, CV_32FC1, depth_in->data);
-  cv::imshow("COSAS1", image / 4500.0);
   cv::Mat new_camera_matrix = cv::getOptimalNewCameraMatrix(k, dist_coeffs, cv::Size(depth_in->height, depth_in->width), 0.0);
   cv::Mat map1, map2;
   cv::initUndistortRectifyMap(new_camera_matrix, dist_coeffs, cv::noArray(), new_camera_matrix, image.size(), CV_32FC1, map1, map2);
   
   cv::Mat rectified;
   cv::remap(image, rectified, map1, map2, cv::INTER_LINEAR);
-  cv::imshow("COSAS2", rectified / 4500.0);
+  memcpy(depth_raw_out, rectified.data, rectified.rows * rectified.cols * rectified.elemSize());
+  depth_out->height = rectified.rows;
+  depth_out->width = rectified.cols;
 }
 
 void Registration::depth_to_color(float mx, float my, float& rx, float& ry)

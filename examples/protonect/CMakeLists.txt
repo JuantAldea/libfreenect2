@@ -40,7 +40,7 @@ SET(LIBRARY_OUTPUT_PATH ${MY_DIR}/lib)
 #INCLUDE(FindPkgConfig)
 #PKG_CHECK_MODULES(OPENCL OpenCL)
 
-FIND_PACKAGE(OpenCL)
+FIND_PACKAGE(OpenCL REQUIRED)
 message("OPENCL ${OpenCL_FIND_VERSION_MAJOR}")
 
 # dependencies
@@ -49,8 +49,11 @@ FIND_PACKAGE(OpenCV REQUIRED)
 INCLUDE_DIRECTORIES(${OpenCV_INCLUDE_DIR})
 
 # LibUSB
-INCLUDE_DIRECTORIES("${MY_DIR}/../../depends/libusb/include/libusb-1.0/")
-LINK_DIRECTORIES("${MY_DIR}/../../depends/libusb/lib/")
+GET_FILENAME_COMPONENT(LIBUSB_DIR "${MY_DIR}/../../depends/libusb/" REALPATH)
+
+INCLUDE_DIRECTORIES("${LIBUSB_DIR}/include/libusb-1.0/")
+LINK_DIRECTORIES("${LIBUSB_DIR}/lib/")
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 IF(ENABLE_OPENGL)
   # GLFW
@@ -132,13 +135,13 @@ IF(ENABLE_OPENGL)
   )
 ENDIF(ENABLE_OPENGL)
 
-IF(ENABLE_OPENCL AND OPENCL_FOUND)
+IF(ENABLE_OPENCL AND OpenCL_FOUND)
   SET(LIBFREENECT2_WITH_OPENCL_SUPPORT 1)
-  INCLUDE_DIRECTORIES(${OPENCL_INCLUDE_DIRS})
-  #STRING(REPLACE "." ";" "1.1" ${OPENCL_VERSION})
-  #LIST(GET OPENCL_VERSION_LIST 0 OPENCL_VERSION_MAJOR)
-  #LIST(GET OPENCL_VERSION_LIST 1 OPENCL_VERSION_MINOR)
-  #IF (${OPENCL_VERSION_MAJOR} STREQUAL "1" AND ${OPENCL_VERSION_MINOR} STREQUAL "1")
+  INCLUDE_DIRECTORIES(${OpenCL_INCLUDE_DIRS})
+  #STRING(REPLACE "." ";" "1.1" ${OpenCL_VERSION})
+  #LIST(GET OPENCL_VERSION_LIST 0 OpenCL_VERSION_MAJOR)
+  #LIST(GET OPENCL_VERSION_LIST 1 OpenCL_VERSION_MINOR)
+  #IF (${OpenCL_VERSION_MAJOR} STREQUAL "1" AND ${OpenCL_VERSION_MINOR} STREQUAL "1")
      SET(CL_USE_DEPRECATED_OPENCL_1_1_APIS 1)
   #ENDIF()
 
@@ -147,13 +150,13 @@ IF(ENABLE_OPENCL AND OPENCL_FOUND)
   )
 
   LIST(APPEND LIBRARIES
-    ${OPENCL_LIBRARIES}
+    ${OpenCL_LIBRARIES}
   )
 
   LIST(APPEND RESOURCES
     src/opencl_depth_packet_processor.cl
   )
-ENDIF(ENABLE_OPENCL AND OPENCL_FOUND)
+ENDIF(ENABLE_OPENCL AND OpenCL_FOUND)
 
 CONFIGURE_FILE("${MY_DIR}/include/libfreenect2/config.h.in" "${MY_DIR}/include/libfreenect2/config.h" @ONLY)
 
@@ -172,6 +175,52 @@ ADD_EXECUTABLE(Protonect
 TARGET_LINK_LIBRARIES(Protonect
   freenect2
 )
+
+##########################
+
+include(ExternalProject)
+ExternalProject_Add (depth_registration_lib
+  URL "${libfreenect2_SOURCE_DIR}/depth_registration"
+  UPDATE_COMMAND ""
+  INSTALL_COMMAND ""
+)
+
+ExternalProject_Get_Property(depth_registration_lib source_dir)
+set(DEPTH_REGISTRATION_INCLUDE_DIR ${source_dir}/include)
+
+ExternalProject_Get_Property(depth_registration_lib binary_dir)
+set(DEPTH_REGISTRATION_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}depth_registration.so)
+
+set(DEPTH_REGISTRATION_LIBRARY depth_registration)
+
+add_library(${DEPTH_REGISTRATION_LIBRARY} UNKNOWN IMPORTED)
+
+set_property(TARGET ${DEPTH_REGISTRATION_LIBRARY} PROPERTY IMPORTED_LOCATION ${DEPTH_REGISTRATION_LIBRARY_PATH})
+
+add_dependencies(${DEPTH_REGISTRATION_LIBRARY} depth_registration_lib)
+
+INCLUDE_DIRECTORIES(${DEPTH_REGISTRATION_INCLUDE_DIR})
+
+ADD_LIBRARY(ImageRegistration SHARED ImageRegistration.cpp)
+
+TARGET_LINK_LIBRARIES(ImageRegistration
+    ${DEPTH_REGISTRATION_LIBRARY}
+    ${OpenCL_LIBRARIES}
+)
+
+ADD_EXECUTABLE(Protonect-reg
+  Protonect-registration.cpp
+)
+
+TARGET_LINK_LIBRARIES(Protonect-reg
+  ${OpenCV_LIBS}
+  freenect2
+  ${OpenCL_LIBRARIES}
+  ${DEPTH_REGISTRATION_LIBRARY}
+  ImageRegistration
+)
+
+#######################
 
 CONFIGURE_FILE(freenect2.cmake.in "${PROJECT_BINARY_DIR}/freenect2Config.cmake" @ONLY)
 
